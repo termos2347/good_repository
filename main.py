@@ -35,7 +35,7 @@ class TelegramLogHandler(logging.Handler):
         self.bot = bot
         self.owner_id = owner_id
         self.notify_level = notify_level
-        self.rate_limit = 60  # секунды между сообщениями
+        self.rate_limit = 60  # секунды между сообщениямиsef
         self.last_sent = 0
 
     def emit(self, record):
