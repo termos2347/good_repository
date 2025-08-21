@@ -1,6 +1,6 @@
 aiohttp==3.9.5
 aiogram==3.21.0
-psutil==5.9.0
+psutil==7.0.0
 feedparser==6.0.10
 Pillow==11.0.0
 python-dotenv==1.0.0
