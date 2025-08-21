@@ -1,0 +1,20 @@
+{
+    "text_settings": {
+        "position": "center",
+        "offset_x": 0,
+        "offset_y": 0,
+        "max_width_percent": 80,
+        "max_lines": 3,
+        "color": [255, 255, 255],
+        "stroke_color": [0, 0, 0],
+        "stroke_width": 2,
+        "line_spacing": 1.2,
+        "align": "center"
+    },
+    "font_settings": {
+        "size": "auto",
+        "min_size": 36,
+        "max_size": 72,
+        "default_font": "Montserrat-Bold.ttf"
+    }
+}
