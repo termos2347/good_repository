@@ -19,7 +19,7 @@ from pathlib import Path
 from state_manager import StateManager
 from rss_parser import AsyncRSSParser
 from image_generator import AsyncImageGenerator
-from yandex_gpt import AsyncYandexGPT
+from ai import AsyncYandexGPT
 from telegram_interface import AsyncTelegramBot
 from visual_interface import UIBuilder
 from typing import Optional, Dict, Any, Union

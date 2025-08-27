@@ -2,11 +2,12 @@ import logging
 import json
 import re
 import html
+from typing import Dict, Optional
+from openai import AsyncOpenAI, OpenAIError
 import aiohttp
 import asyncio
-from typing import Dict, Optional
 
-logger = logging.getLogger('AsyncYandexGPT')
+logger = logging.getLogger('AsyncAI')
 
 class AsyncYandexGPT:
     def __init__(self, config, session: aiohttp.ClientSession):
