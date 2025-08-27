@@ -22,4 +22,4 @@ python-telegram-bot==20.3
 pytz==2025.2
 beautifulsoup4==4.12.2
 Pillow==11.0.0
-telegram==20.3
+
