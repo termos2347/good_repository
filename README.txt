@@ -1,3 +1,12 @@
+python 3.11
+
+
+
+
+
+
+
+
 Telegram RSS Bot with AI Enhancement
 📦 Зависимости
 Основные зависимости (указаны в requirements.txt)
@@ -139,7 +148,7 @@ bot_state.json
 
 
 .env
-.gitignore
+
 Dockerfile
 README.txt
 bot_controller.py

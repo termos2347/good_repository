@@ -1,0 +1,10 @@
+.env
+.env.bak
+.python-version
+bot_state.json
+__pycache__
+fonts
+logs
+state_backups
+temp_images
+templates
