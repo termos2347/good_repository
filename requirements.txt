@@ -16,13 +16,12 @@ aiofiles==24.1.0
 typing-extensions==4.14.1
 pydantic==2.11.7
 matplotlib==3.9
+matplotlib.pyplot
 numpy==2.3.2
 requests==2.31.0
 python-telegram-bot==20.3
 pytz==2025.2
-bs4
-defusedxml
-feedparser
-PIL
+bs4==4.12.2
+PIL==11.0.0
 PIL.ImageFont
-telegram
+telegram==20.3
