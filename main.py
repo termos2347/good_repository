@@ -19,7 +19,7 @@ from pathlib import Path
 from state_manager import StateManager
 from rss_parser import AsyncRSSParser
 from image_generator import AsyncImageGenerator
-from ai import AsyncYandexGPT
+from ai import AsyncAI
 from telegram_interface import AsyncTelegramBot
 from visual_interface import UIBuilder
 from typing import Optional, Dict, Any, Union
@@ -220,8 +220,8 @@ async def run_bot():
         # Создаем временный экземпляр RSS-парсера без контроллера
         rss_parser = AsyncRSSParser(session, config.PROXY_URL)
         
-        # Инициализация YandexGPT и генератора изображений
-        yandex_gpt = AsyncYandexGPT(config, session)
+        # Инициализация AI и генератора изображений
+        AI = AsyncAI(config, session)
         image_generator = AsyncImageGenerator(config)
         logger.info("All components initialized")
         
@@ -231,7 +231,7 @@ async def run_bot():
             state_manager=state_manager,
             rss_parser=rss_parser,
             image_generator=image_generator,
-            yandex_gpt=yandex_gpt,
+            AI=AI,
             telegram_bot=telegram_bot
         )
         logger.info("Bot controller created")

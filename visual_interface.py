@@ -149,7 +149,7 @@ class UIBuilder:
                 "📊 <b>Статистика производительности</b>\n\n"
                 f"▸ Постов отправлено: <b>{stats.get('posts_sent', 0)}</b>\n"
                 f"▸ Ошибок: <b>{stats.get('errors', 0)}</b>\n"
-                f"▸ Использований AI: <b>{stats.get('yagpt_used', 0)}</b>\n"
+                f"▸ Использований AI: <b>{stats.get('AI_used', 0)}</b>\n"
                 f"▸ Изображений сгенерировано: <b>{stats.get('images_generated', 0)}</b>\n"
                 f"▸ Среднее время цикла: <b>{stats.get('avg_processing_time', 0):.2f} сек</b>\n"
                 f"▸ Аптайм: <b>{stats.get('uptime', '0:00')}</b>"
@@ -404,15 +404,15 @@ class UIBuilder:
             settings = self.user_editing_states[user_id]
         else:
             settings = {
-                'enabled': self.config.ENABLE_YAGPT,
-                'model': self.config.YAGPT_MODEL,
-                'temperature': self.config.YAGPT_TEMPERATURE,
-                'max_tokens': self.config.YAGPT_MAX_TOKENS
+                'enabled': self.config.ENABLE_AI,
+                'model': self.config.AI_MODEL,
+                'temperature': self.config.AI_TEMPERATURE,
+                'max_tokens': self.config.AI_MAX_TOKENS
             }
 
         theme = self.get_theme(user_id)
         text = (
-            "🧠 <b>Настройки YandexGPT</b>\n\n"
+            "🧠 <b>Настройки AI</b>\n\n"
             f"• Состояние: {'🟢 Включен' if settings['enabled'] else '🔴 Выключен'}\n"
             f"• Модель: {settings['model']} {'✏️' if edit_mode else ''}\n"
             f"• Температура: {settings['temperature']} {'✏️' if edit_mode else ''}\n"
@@ -453,7 +453,7 @@ class UIBuilder:
 
     async def ai_model_selector(self, user_id: int) -> InlineKeyboardMarkup:
         """Клавиатура выбора модели AI"""
-        current_model = self.config.YAGPT_MODEL
+        current_model = self.config.AI_MODEL
         if user_id in self.user_editing_states:
             current_model = self.user_editing_states[user_id].get('model', current_model)
         
@@ -469,7 +469,7 @@ class UIBuilder:
 
     async def ai_temp_selector(self, user_id: int) -> InlineKeyboardMarkup:
         """Клавиатура выбора температуры"""
-        current_temp = self.config.YAGPT_TEMPERATURE
+        current_temp = self.config.AI_TEMPERATURE
         if user_id in self.user_editing_states:
             current_temp = self.user_editing_states[user_id].get('temperature', current_temp)
         
@@ -486,7 +486,7 @@ class UIBuilder:
 
     async def ai_tokens_selector(self, user_id: int) -> InlineKeyboardMarkup:
         """Клавиатура выбора токенов"""
-        current_tokens = self.config.YAGPT_MAX_TOKENS
+        current_tokens = self.config.AI_MAX_TOKENS
         if user_id in self.user_editing_states:
             current_tokens = self.user_editing_states[user_id].get('max_tokens', current_tokens)
         
@@ -504,10 +504,10 @@ class UIBuilder:
     async def start_ai_edit(self, user_id: int):
         """Начинает редактирование настроек AI для пользователя"""
         self.user_editing_states[user_id] = {
-            'enabled': self.config.ENABLE_YAGPT,
-            'model': self.config.YAGPT_MODEL,
-            'temperature': self.config.YAGPT_TEMPERATURE,
-            'max_tokens': self.config.YAGPT_MAX_TOKENS
+            'enabled': self.config.ENABLE_AI,
+            'model': self.config.AI_MODEL,
+            'temperature': self.config.AI_TEMPERATURE,
+            'max_tokens': self.config.AI_MAX_TOKENS
         }
 
     async def update_ai_setting(self, user_id: int, key: str, value: Any):
@@ -526,17 +526,17 @@ class UIBuilder:
         changes = {}
         settings = self.user_editing_states.pop(user_id)
         
-        if settings['enabled'] != self.config.ENABLE_YAGPT:
-            changes['ENABLE_YAGPT'] = settings['enabled']
+        if settings['enabled'] != self.config.ENABLE_AI:
+            changes['ENABLE_AI'] = settings['enabled']
 
-        if settings['model'] != self.config.YAGPT_MODEL:
-            changes['YAGPT_MODEL'] = settings['model']
+        if settings['model'] != self.config.AI_MODEL:
+            changes['AI_MODEL'] = settings['model']
         
-        if abs(settings['temperature'] - self.config.YAGPT_TEMPERATURE) > 0.01:
-            changes['YAGPT_TEMPERATURE'] = settings['temperature']
+        if abs(settings['temperature'] - self.config.AI_TEMPERATURE) > 0.01:
+            changes['AI_TEMPERATURE'] = settings['temperature']
         
-        if settings['max_tokens'] != self.config.YAGPT_MAX_TOKENS:
-            changes['YAGPT_MAX_TOKENS'] = settings['max_tokens']
+        if settings['max_tokens'] != self.config.AI_MAX_TOKENS:
+            changes['AI_MAX_TOKENS'] = settings['max_tokens']
         
         return changes
 

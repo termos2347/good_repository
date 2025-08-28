@@ -21,16 +21,17 @@ import pytz
 from telegram import CallbackQuery
 from rss_parser import AsyncRSSParser
 from state_manager import StateManager
+from ai import AsyncAI
 
 logger = logging.getLogger('bot.controller')
 
 class BotController:
-    def __init__(self, config, state_manager, rss_parser, image_generator, yandex_gpt, telegram_bot):
+    def __init__(self, config, state_manager, rss_parser, image_generator, AI, telegram_bot):
         self.config = config
         self.state_manager = state_manager
         self.rss_parser = rss_parser
         self.image_generator = image_generator
-        self.yandex_gpt = yandex_gpt
+        self.AI = AI
         self.telegram_bot = telegram_bot
         self.REQUIRE_IMAGE = True
         self._validate_config()
@@ -67,8 +68,8 @@ class BotController:
             'last_check': None,
             'errors': 0,
             'last_post': None,
-            'yagpt_used': 0,
-            'yagpt_errors': 0,
+            'AI_used': 0,
+            'AI_errors': 0,
             'image_errors': 0,
             'images_generated': 0,
             'images_deleted': 0,
@@ -124,10 +125,10 @@ class BotController:
                 raise ValueError(f"Missing required config: {param}")
             
     def is_available(self) -> bool:
-        """Проверяет, доступен ли сервис Yandex GPT"""
-        return (self.config.YANDEX_API_KEY and 
-                self.config.YANDEX_FOLDER_ID and 
-                self.config.YANDEX_API_ENDPOINT and
+        """Проверяет, доступен ли сервис AI"""
+        return (self.config.AI_API_KEY and 
+                self.config.AI_FOLDER_ID and 
+                self.config.AI_API_ENDPOINT and
                 self.active)
 
     async def _create_session(self) -> aiohttp.ClientSession:
@@ -151,8 +152,8 @@ class BotController:
             
             # Обновляем сессии во всех зависимых компонентах
             self.rss_parser.session = self.session
-            if self.yandex_gpt:
-                self.yandex_gpt.session = self.session
+            if self.AI:
+                self.AI.session = self.session
                 
             logger.info("HTTP session recreated successfully")
         except Exception as e:
@@ -265,8 +266,8 @@ class BotController:
                     
                     # Обновляем сессии в зависимых компонентах
                     self.rss_parser.session = self.session
-                    if self.yandex_gpt:
-                        self.yandex_gpt.session = self.session
+                    if self.AI:
+                        self.AI.session = self.session
                         
                     logger.info("HTTP session refreshed successfully")
             except asyncio.CancelledError:
@@ -1018,10 +1019,10 @@ class BotController:
 
             # Проверяем условия для использования ИИ
             use_ai = (
-                self.config.ENABLE_YAGPT and
-                self.yandex_gpt and
-                self.yandex_gpt.active and
-                self.yandex_gpt.is_available()
+                self.config.ENABLE_AI and
+                self.AI and
+                self.AI.active and
+                self.AI.is_available()
             )
 
             # Если ИИ отключен - используем оригинальный контент
@@ -1032,8 +1033,8 @@ class BotController:
                 }
 
             # Вызов ИИ для улучшения контента
-            logger.debug(f"Обработка через YandexGPT: {title[:50]}...")
-            result = await self.yandex_gpt.enhance(title, description)
+            logger.debug(f"Обработка через AI: {title[:50]}...")
+            result = await self.AI.enhance(title, description)
             
             # Если ИИ вернул None (плохой ответ) - пропускаем пост
             if result is None:
@@ -1524,7 +1525,7 @@ class BotController:
             f"<b>Отправлено постов:</b> {self.stats.get('posts_sent', 0)}\n"
             f"<b>Ошибок:</b> {self.stats.get('errors', 0)}\n"
             f"<b>Дубликатов отклонено:</b> {self.stats.get('duplicates_rejected', 0)}\n"
-            f"<b>Использований YandexGPT:</b> {self.stats.get('yagpt_used', 0)}\n"
+            f"<b>Использований AI:</b> {self.stats.get('AI_used', 0)}\n"
             f"<b>Сгенерировано изображений:</b> {self.stats.get('images_generated', 0)}\n"
             f"<b>Лент в обработке:</b> {len(self.config.RSS_URLS)}"
         )

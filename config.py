@@ -355,23 +355,22 @@ class Config:
             self.logger.warning("RSS_ACTIVE length mismatch, resetting to defaults")
             self.RSS_ACTIVE = [True] * len(self.RSS_URLS)
 
-        # Параметры YandexGPT
-        self.YANDEX_API_KEY: Optional[str] = self.get_env_var('YANDEX_API_KEY')
-        self.YANDEX_FOLDER_ID: str = self.get_env_var('YANDEX_FOLDER_ID', required=True)
-        self.YANDEX_API_ENDPOINT: str = self.get_env_var('YANDEX_API_ENDPOINT', default='https://llm.api.cloud.yandex.net/foundationModels/v1/completion')
-        self.ENABLE_YAGPT: bool = self.get_env_var('ENABLE_YAGPT', default=True, var_type=bool)
-        self.YAGPT_MODEL: str = self.get_env_var('YAGPT_MODEL', default='yandexgpt-lite')
-        self.YAGPT_TEMPERATURE: float = self.get_env_var('YAGPT_TEMPERATURE', default=0.4, var_type=float)
-        self.YAGPT_MAX_TOKENS: int = self.get_env_var('YAGPT_MAX_TOKENS', default=2500, var_type=int)
-        self.YAGPT_PROMPT = self.get_env_var(
-            "YAGPT_PROMPT", 
+        # Универсальные параметры AI
+        self.AI_API_KEY: Optional[str] = self.get_env_var('AI_API_KEY')
+        self.AI_PROVIDER_TYPE: str = self.get_env_var('AI_PROVIDER_TYPE', default='openai')
+        self.AI_BASE_URL: str = self.get_env_var('AI_BASE_URL', default='https://api.aitunnel.ru/v1/')
+        self.AI_MODEL: str = self.get_env_var('AI_MODEL', default='deepseek-r1')
+        self.ENABLE_AI: bool = self.get_env_var('ENABLE_AI', default=True, var_type=bool)
+        self.AI_TEMPERATURE: float = self.get_env_var('AI_TEMPERATURE', default=0.4, var_type=float)
+        self.AI_MAX_TOKENS: int = self.get_env_var('AI_MAX_TOKENS', default=2500, var_type=int)
+        self.AI_PROMT = self.get_env_var(
+            "AI_PROMT", 
             default="Улучши заголовок и описание: '{title}' - '{description}'",
-            var_type=str  # Явно указываем тип строки
+            var_type=str
         )
-        self.YAGPT_ERROR_THRESHOLD: int = self.get_env_var('YAGPT_ERROR_THRESHOLD', default=5, var_type=int)
-        self.AUTO_ENABLE_YAGPT: bool = self.get_env_var('AUTO_ENABLE_YAGPT', default=True, var_type=bool)
-        # В config.py
-        self.MAX_CONCURRENT_GPT_REQUESTS = int(os.getenv('MAX_CONCURRENT_GPT_REQUESTS', 3))
+        self.AI_ERROR_THRESHOLD: int = self.get_env_var('AI_ERROR_THRESHOLD', default=5, var_type=int)
+        self.AUTO_ENABLE_AI: bool = self.get_env_var('AUTO_ENABLE_AI', default=True, var_type=bool)
+        self.MAX_CONCURRENT_AI_REQUESTS = int(os.getenv('MAX_CONCURRENT_AI_REQUESTS', 3))
 
         # Параметры контента
         self.MIN_TITLE_LENGTH: int = self.get_env_var('MIN_TITLE_LENGTH', default=0, var_type=int)
@@ -445,10 +444,10 @@ class Config:
             'CHECK_INTERVAL': self.CHECK_INTERVAL,
             'MAX_ENTRIES_HISTORY': self.MAX_ENTRIES_HISTORY,
             'YANDEX_API_ENDPOINT': self.YANDEX_API_ENDPOINT,
-            'ENABLE_YAGPT': self.ENABLE_YAGPT,
-            'YAGPT_MODEL': self.YAGPT_MODEL,
-            'YAGPT_TEMPERATURE': self.YAGPT_TEMPERATURE,
-            'YAGPT_MAX_TOKENS': self.YAGPT_MAX_TOKENS,
+            'ENABLE_AI': self.ENABLE_AI,
+            'AI_MODEL': self.AI_MODEL,
+            'AI_TEMPERATURE': self.AI_TEMPERATURE,
+            'AI_MAX_TOKENS': self.AI_MAX_TOKENS,
             'ENABLE_IMAGE_GENERATION': self.ENABLE_IMAGE_GENERATION,
             'MAX_IMAGE_WIDTH': self.MAX_IMAGE_WIDTH,
             'MAX_IMAGE_HEIGHT': self.MAX_IMAGE_HEIGHT,

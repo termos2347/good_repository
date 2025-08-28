@@ -1169,13 +1169,13 @@ class AsyncTelegramBot:
                     
                     # Обработка общих параметров
                     elif param_type == 'general':
-                        if param in ['temperature', 'yagpt_temperature']:
+                        if param in ['temperature', 'ai_temperature']:
                             value = self.validator.validate_temperature(text)
-                        elif param in ['max_tokens', 'yagpt_max_tokens']:
+                        elif param in ['max_tokens', 'ai_max_tokens']:
                             value = self.validator.validate_tokens(text)
                         elif param in ['check_interval', 'min_delay_between_posts']:
                             value = self.validator.validate_interval(text)
-                        elif param in ['enable_yagpt', 'image_fallback']:
+                        elif param in ['enable_ai', 'image_fallback']:
                             value = self.validator.validate_boolean(text)
                         else:
                             # Общая валидация для числовых параметров
@@ -1492,8 +1492,8 @@ class AsyncTelegramBot:
             f"Ошибок: {self.controller.stats.get('errors', 0)}\n"
             f"Изображений: {self.controller.stats.get('images_generated', 0)}\n"
             f"Дубликатов отклонено: {self.controller.stats.get('duplicates_rejected', 0)}\n"
-            f"Использований YandexGPT: {self.controller.stats.get('yagpt_used', 0)}\n"
-            f"Ошибок YandexGPT: {self.controller.stats.get('yagpt_errors', 0)}"
+            f"Использований AI: {self.controller.stats.get('AI_used', 0)}\n"
+            f"Ошибок AI: {self.controller.stats.get('AI_errors', 0)}"
         )
         await message.answer(stats, parse_mode="HTML")
 
@@ -1682,12 +1682,12 @@ class AsyncTelegramBot:
         
         settings = (
             "⚙️ <b>Текущие настройки:</b>\n"
-            f"YandexGPT: {'🟢 Вкл' if self.config.ENABLE_YAGPT else '🔴 Выкл'}\n"
+            f"AI: {'🟢 Вкл' if self.config.ENABLE_AI else '🔴 Выкл'}\n"
             f"Изображения: {'🟢 Вкл' if self.config.ENABLE_IMAGE_GENERATION else '🔴 Выкл'}\n"
             f"Источник изображений: {source_mapping.get(self.config.IMAGE_SOURCE, 'Неизвестно')}\n"
             f"Резервная генерация: {'🟢 Вкл' if self.config.IMAGE_FALLBACK else '🔴 Выкл'}\n"
             f"Постов/час: {self.config.POSTS_PER_HOUR}\n"
-            f"Модель YandexGPT: {self.config.YAGPT_MODEL}"
+            f"Модель AI: {self.config.AI_MODEL}"
         )
         await message.answer(settings, parse_mode="HTML")
 
@@ -1708,9 +1708,9 @@ class AsyncTelegramBot:
             'MIN_DELAY_BETWEEN_POSTS': {'type': int, 'validator': lambda x: x >= 10, 'error_msg': 'Минимальная задержка 10 секунд'},
             'CHECK_INTERVAL': {'type': int, 'validator': lambda x: x >= 60, 'error_msg': 'Интервал проверки не менее 60 секунд'},
             'ENABLE_IMAGE_GENERATION': {'type': bool, 'validator': None},
-            'ENABLE_YAGPT': {'type': bool, 'validator': None},
-            'YAGPT_MODEL': {'type': str, 'validator': lambda x: x in ['yandexgpt-lite', 'yandexgpt-pro'], 'error_msg': 'Допустимые модели: yandexgpt-lite, yandexgpt-pro'},
-            'YAGPT_TEMPERATURE': {'type': float, 'validator': lambda x: 0.1 <= x <= 1.0, 'error_msg': 'Температура должна быть от 0.1 до 1.0'}
+            'ENABLE_AI': {'type': bool, 'validator': None},
+            'AI_MODEL': {'type': str, 'validator': lambda x: x in ['yandexgpt-lite', 'yandexgpt-pro'], 'error_msg': 'Допустимые модели: yandexgpt-lite, yandexgpt-pro /n Короче нихуя не работате пока что выбор модели, не смей трогать и переключать модели'},
+            'AI_TEMPERATURE': {'type': float, 'validator': lambda x: 0.1 <= x <= 1.0, 'error_msg': 'Температура должна быть от 0.1 до 1.0'}
         }
         
         if param not in ALLOWED_PARAMS:

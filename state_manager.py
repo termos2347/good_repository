@@ -239,7 +239,7 @@ class StateManager:
             }
             
             if self.config:
-                metadata_update['enable_yagpt'] = self.config.ENABLE_YAGPT
+                metadata_update['enable_AI'] = self.config.ENABLE_AI
                 
             self.state['metadata'].update(metadata_update)
             
