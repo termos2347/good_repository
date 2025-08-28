@@ -1,7 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor
 from logging import config
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import feedparser
 import logging
 import aiohttp
@@ -519,37 +519,70 @@ class AsyncRSSParser:
 
     @staticmethod
     def _normalize_image_url(url: Optional[str], base_url: str) -> str:
-        """Нормализует URL изображения"""
+        """Улучшенная нормализация URL изображения"""
         if not url:
             return ""
         
-        # Убрали str(url) - теперь url всегда строка
-        if url.startswith(('http://', 'https://')):
-            return url
-        if url.startswith('//'):
-            return f'https:{url}'
-        return urljoin(base_url, url)
+        # Убедимся, что url является строкой
+        url_str = str(url).strip()
+        
+        if url_str.startswith(('http://', 'https://')):
+            return url_str
+            
+        if url_str.startswith('//'):
+            return f'https:{url_str}'
+            
+        if url_str.startswith('/'):
+            if not base_url:
+                return ""
+            parsed_base = urlparse(base_url)
+            return f"{parsed_base.scheme}://{parsed_base.netloc}{url_str}"
+            
+        # Для относительных путей без слеша в начале
+        if not url_str.startswith(('http', '//', '/')):
+            if not base_url:
+                return ""
+            return urljoin(base_url, url_str)
+            
+        return url_str
 
     @staticmethod
     def _is_valid_image(img_tag: Tag, img_url: str) -> bool:
-        """Проверяет валидность изображения"""
-        if not img_url or any(x in img_url.lower() for x in ['pixel', 'icon', 'logo', 'spacer', 'ad']):
+        """Улучшенная проверка валидности изображения"""
+        if not img_url or any(x in img_url.lower() for x in ['pixel', 'icon', 'logo', 'spacer', 'ad', 'tracker', 'counter']):
             return False
 
-        # Преобразуем атрибуты в строки перед обработкой
-        width_str = str(img_tag.get('width', '0'))
-        height_str = str(img_tag.get('height', '0'))
+        # Проверка классов изображения
+        class_list = img_tag.get('class', [])
+        if isinstance(class_list, str):
+            class_list = [class_list]
         
-        # Удаляем нечисловые символы (например, 'px')
-        width_str = re.sub(r'[^\d]', '', width_str)
-        height_str = re.sub(r'[^\d]', '', height_str)
-        
+        invalid_classes = ['icon', 'logo', 'ad', 'thumb', 'mini', 'avatar', 'button', 'border']
+        if any(invalid in cls.lower() for cls in class_list for invalid in invalid_classes):
+            return False
+
+        # Проверка размеров
         try:
-            width_int = int(width_str) if width_str else 0
-            height_int = int(height_str) if height_str else 0
-            return width_int >= 300 and height_int >= 200
-        except ValueError:
+            width = img_tag.get('width', '0')
+            height = img_tag.get('height', '0')
+            
+            # Преобразуем в числа, удаляя нечисловые символы
+            width = int(''.join(filter(str.isdigit, str(width)))) if width else 0
+            height = int(''.join(filter(str.isdigit, str(height)))) if height else 0
+            
+            # Минимальные размеры для релевантного изображения
+            if width >= 300 and height >= 200:
+                return True
+                
+            # Если размеры не указаны, считаем изображение валидным
+            if width == 0 and height == 0:
+                return True
+                
+        except (ValueError, TypeError):
+            # Если не удалось распарсить размеры, считаем изображение валидным
             return True
+            
+        return False
 
     @staticmethod
     def _get_feed_base_url(feed_content: Any) -> str:
@@ -605,75 +638,100 @@ class AsyncRSSParser:
         return datetime.now().isoformat()
 
     def _extract_image_url(self, entry: Any) -> Optional[str]:
-        """Извлекает URL изображения из записи с расширенной поддержкой форматов"""
-        # 1. Проверка медиа-контента (Atom) - <media:content>
+        """Улучшенное извлечение URL изображения из записи RSS"""
+        # 1. Приоритет: проверка медиа-контента (Atom) - <media:content>
         if hasattr(entry, 'media_content'):
-            for media in entry.media_content[:self.MAX_ENCLOSURES]:
-                media_type = getattr(media, 'type', '')
-                if media_type.startswith('image/'):
-                    url = getattr(media, 'url', None)
-                    if url:
-                        return str(url)
+            for media in getattr(entry, 'media_content', [])[:self.MAX_ENCLOSURES]:
+                try:
+                    media_type = getattr(media, 'type', '').lower()
+                    if media_type.startswith('image/'):
+                        url = getattr(media, 'url', None)
+                        if url and str(url).startswith('http'):
+                            return str(url)
+                except (AttributeError, TypeError):
+                    continue
 
-        # 2. Проверка вложений (RSS) - <enclosure>
+        # 2. Проверка вложений (RSS) - <enclosure> - УЛУЧШЕННАЯ ОБРАБОТКА
         if hasattr(entry, 'enclosures'):
-            for enclosure in entry.enclosures[:self.MAX_ENCLOSURES]:
-                enc_type = getattr(enclosure, 'type', '')
-                if enc_type.startswith('image/'):
-                    url = getattr(enclosure, 'url', getattr(enclosure, 'href', None))
-                    if url:
-                        return str(url)
+            enclosures = getattr(entry, 'enclosures', [])
+            if not isinstance(enclosures, list):
+                enclosures = [enclosures]
+                
+            for enclosure in enclosures[:self.MAX_ENCLOSURES]:
+                try:
+                    # Получаем тип из атрибута type или mime_type
+                    enc_type = (
+                        getattr(enclosure, 'type', '') or 
+                        getattr(enclosure, 'mime_type', '')
+                    ).lower()
+                    
+                    # Проверяем, является ли вложение изображением
+                    if enc_type and enc_type.startswith('image/'):
+                        # Пытаемся получить URL из различных атрибутов
+                        url = (
+                            getattr(enclosure, 'url', None) or
+                            getattr(enclosure, 'href', None) or
+                            getattr(enclosure, 'link', None)
+                        )
+                        
+                        if url and str(url).startswith('http'):
+                            return str(url)
+                except (AttributeError, TypeError):
+                    continue
 
         # 3. Проверка миниатюр (Media RSS) - <media:thumbnail>
         if hasattr(entry, 'media_thumbnail'):
-            thumbnails = entry.media_thumbnail
+            thumbnails = getattr(entry, 'media_thumbnail', [])
             if not isinstance(thumbnails, list):
                 thumbnails = [thumbnails]
 
             for thumb in thumbnails[:self.MAX_ENCLOSURES]:
-                url = getattr(thumb, 'url', None)
-                if url:
-                    return str(url)
-
-        # 4. Явно указанные изображения в стандартных полях
-        for field_name in ['image', 'image_url', 'thumbnail']:
-            if hasattr(entry, field_name):
-                field_value = getattr(entry, field_name)
-                if isinstance(field_value, str) and field_value.startswith('http'):
-                    return field_value
-                elif isinstance(field_value, dict) and 'url' in field_value:
-                    return str(field_value['url'])
-
-        # 5. Расширенная проверка структурированных данных
-        for field in ['media:content', 'media:thumbnail', 'og:image']:
-            if field in entry:
-                value = entry[field]
-                if isinstance(value, dict) and 'url' in value:
-                    return str(value['url'])
-                elif isinstance(value, list) and len(value) > 0:
-                    first_item = value[0]
-                    if isinstance(first_item, dict) and 'url' in first_item:
-                        return str(first_item['url'])
-                    elif isinstance(first_item, str):
-                        return first_item
-                elif isinstance(value, str):
-                    return value
-
-        # 6. Проверка вложенных элементов (для форматов типа JSON Feed)
-        if hasattr(entry, 'attachments'):
-            for attachment in entry.attachments[:self.MAX_ENCLOSURES]:
-                if attachment.get('mime_type', '').startswith('image/'):
-                    url = attachment.get('url')
-                    if url:
+                try:
+                    url = getattr(thumb, 'url', None)
+                    if url and str(url).startswith('http'):
                         return str(url)
-                    
-        # 7. Поиск изображения в HTML-контенте (для Habr и подобных)
+                except (AttributeError, TypeError):
+                    continue
+
+        # 4. Проверка структурированных данных (расширенная)
+        structured_fields = ['image', 'image_url', 'thumbnail', 'og:image', 'media:content']
+        for field in structured_fields:
+            if hasattr(entry, field):
+                try:
+                    field_value = getattr(entry, field)
+                    if isinstance(field_value, str) and field_value.startswith('http'):
+                        return field_value
+                    elif isinstance(field_value, dict):
+                        url = field_value.get('url') or field_value.get('href') or field_value.get('link')
+                        if url and str(url).startswith('http'):
+                            return str(url)
+                    elif isinstance(field_value, list) and len(field_value) > 0:
+                        first_item = field_value[0]
+                        if isinstance(first_item, dict):
+                            url = first_item.get('url') or first_item.get('href') or first_item.get('link')
+                            if url and str(url).startswith('http'):
+                                return str(url)
+                        elif isinstance(first_item, str) and first_item.startswith('http'):
+                            return first_item
+                except (AttributeError, TypeError, KeyError):
+                    continue
+
+        # 5. Поиск в HTML-контенте описания (для Habr и подобных)
         if hasattr(entry, 'description') and entry.description:
             description = getattr(entry, 'description', '')
             base_url = self._get_feed_base_url(entry) or ''
             image_url = self._extract_image_from_html(description, base_url)
             if image_url:
                 return image_url
+
+        # 6. Проверка ссылок в содержании
+        if hasattr(entry, 'content') and entry.content:
+            for content_item in getattr(entry, 'content', []):
+                if hasattr(content_item, 'value'):
+                    base_url = self._get_feed_base_url(entry) or ''
+                    image_url = self._extract_image_from_html(content_item.value, base_url)
+                    if image_url:
+                        return image_url
 
         return None
 

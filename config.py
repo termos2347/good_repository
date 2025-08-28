@@ -365,7 +365,7 @@ class Config:
         self.AI_MAX_TOKENS: int = self.get_env_var('AI_MAX_TOKENS', default=2500, var_type=int)
         self.AI_PROMT = self.get_env_var(
             "AI_PROMT", 
-            default="Улучши заголовок и описание: '{title}' - '{description}'",
+            default="Улучши заголовок и описание: '{title}' - '{description}' Верни ответ без пояснений с ключами 'title' - 'description'. Заголовок:1-2 смайла,упомяни что обработано ботом. Описание:2-3 предложения на русском. Общий объем — до 1000 символов. Если данные необрабатываемы — верни {{}}. Не используй Markdown-разметку (`json),только чистый JSON.",
             var_type=str
         )
         self.AI_ERROR_THRESHOLD: int = self.get_env_var('AI_ERROR_THRESHOLD', default=5, var_type=int)

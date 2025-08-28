@@ -46,7 +46,7 @@ class AsyncAI:
             return False
         return self.error_count < self.config.AI_ERROR_THRESHOLD
 
-    def _sanitize_prompt_input(self, text: str) -> str:
+    def _sanitize_promt_input(self, text: str) -> str:
         """Экранирует специальные символы"""
         if not isinstance(text, str):
             return ""
@@ -82,23 +82,23 @@ class AsyncAI:
 
         try:
             # Формирование промпта
-            prompt = self.config.AI_PROMT.format(
-                title=self._sanitize_prompt_input(title),
-                description=self._sanitize_prompt_input(description)
+            promt = self.config.AI_PROMT.format(
+                title=self._sanitize_promt_input(title),
+                description=self._sanitize_promt_input(description)
             )
 
             # Отправка запроса в зависимости от типа провайдера
             if self.config.AI_PROVIDER_TYPE == "openai":
                 response = await self.client.chat.completions.create(
                     model=self.config.AI_MODEL,
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=[{"role": "user", "content": promt}],
                     max_tokens=self.config.AI_MAX_TOKENS,
                     temperature=self.config.AI_TEMPERATURE,
                 )
                 result_text = response.choices[0].message.content
             else:
                 # Для других провайдеров
-                result_text = await self._make_custom_api_request(prompt)
+                result_text = await self._make_custom_api_request(promt)
 
             # Парсим результат
             parsed_response = self.parse_response(result_text)
@@ -165,26 +165,40 @@ class AsyncAI:
         return any(re.search(phrase, text_lower) for phrase in quality_indicators)
 
     def parse_response(self, data: Union[Dict, str]) -> Optional[Dict]:
-        """Парсит ответ от API"""
+        """Парсит ответ от API с очисткой от Markdown-разметки"""
         try:
-            # Если data - это строка, пытаемся распарсить как JSON
+            # Если data - это строка, очищаем от всей Markdown-разметки
             if isinstance(data, str):
+                # Удаляем все возможные варианты обрамления кода
+                data = re.sub(r'^```(?:json)?\s*', '', data, flags=re.IGNORECASE)
+                data = re.sub(r'```$', '', data)
+                
+                # Удаляем возможные HTML/XML теги
+                data = re.sub(r'<[^>]+>', '', data)
+                
+                # Удаляем лишние пробелы и переносы строк
+                data = data.strip()
+                
+                # Ищем JSON в строке с помощью регулярного выражения
+                json_match = re.search(r'\{.*\}', data, re.DOTALL)
+                if json_match:
+                    data = json_match.group(0)
+                
                 try:
                     data = json.loads(data)
                 except json.JSONDecodeError:
-                    # Если это не JSON, обрабатываем как текст
+                    # Логируем сырой ответ для отладки
+                    logger.debug(f"Raw AI response that failed to parse: {data[:200]}...")
                     return self._parse_text_response(data)
             
-            # Обработка JSON-ответа
+            # Дальнейшая обработка JSON
             if isinstance(data, dict):
-                # Прямой JSON парсинг
                 if 'title' in data and 'description' in data:
                     return {
                         'title': self._sanitize_text(data['title'])[:self.config.MAX_TITLE_LENGTH],
                         'description': self._sanitize_text(data['description'])[:self.config.MAX_DESC_LENGTH]
                     }
                 
-                # Попытка извлечения из структур разных провайдеров
                 text = self._extract_text_from_response(data)
                 if text:
                     return self._parse_text_response(text)
@@ -193,6 +207,34 @@ class AsyncAI:
             
         except Exception as e:
             logger.error(f"AI parsing error: {str(e)}", exc_info=True)
+            return None
+        
+    def _force_clean_json(self, text: str) -> Optional[Dict]:
+        """Принудительно извлекает JSON из текста с помощью регулярных выражений"""
+        try:
+            # Ищем шаблон JSON с title и description
+            pattern = r'\{[\s\n]*"title"[\s\n]*:[\s\n]*"[^"]*"[\s\n]*,[\s\n]*"description"[\s\n]*:[\s\n]*"[^"]*"[\s\n]*\}'
+            match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+            
+            if match:
+                json_str = match.group(0)
+                # Заменяем умные кавычки на обычные
+                json_str = json_str.replace('“', '"').replace('”', '"').replace('‘', "'").replace('’', "'")
+                return json.loads(json_str)
+            
+            # Альтернативный шаблон с одинарными кавычками
+            pattern2 = r"\{[\s\n]*'title'[\s\n]*:[\s\n]*'[^']*'[\s\n]*,[\s\n]*'description'[\s\n]*:[\s\n]*'[^']*'[\s\n]*\}"
+            match2 = re.search(pattern2, text, re.DOTALL | re.IGNORECASE)
+            
+            if match2:
+                json_str = match2.group(0)
+                # Заменяем одинарные кавычки на двойные для корректного парсинга JSON
+                json_str = json_str.replace("'", '"')
+                return json.loads(json_str)
+                
+            return None
+        except Exception as e:
+            logger.debug(f"Force clean JSON failed: {str(e)}")
             return None
 
     def _extract_text_from_response(self, data: Dict) -> Optional[str]:

@@ -1256,21 +1256,6 @@ class BotController:
         except Exception as e:
             logger.debug(f"HTML content image search error: {str(e)}")
             return None
-    def _normalize_image_url(self, url: str, base_url: str) -> str:
-        """Нормализация URL изображения"""
-        if not isinstance(url, str):
-            return ""
-            
-        if url.startswith(('http://', 'https://')):
-            return url
-        if url.startswith('//'):
-            return f'https:{url}'
-        if url.startswith('/'):
-            if not base_url:
-                base_url = self.config.RSS_URLS[0] if self.config.RSS_URLS else ""
-            parsed = urlparse(base_url)
-            return f"{parsed.scheme}://{parsed.netloc}{url}"
-        return url
 
     async def _generate_image_with_semaphore(self, title: str) -> Optional[str]:
         """Генерация изображения с учетом семафора"""
